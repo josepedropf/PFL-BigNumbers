@@ -1,33 +1,80 @@
-type BigNumber = [Int]
-{-
-data Digit = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
+{-# LANGUAGE MultiWayIf #-}
+import Distribution.Simple.Build (build)
+--type BigNumber = [Int]
+--Big Decision
 
-addDigit :: Digit -> Digit -> Digit
-addDigit d1 d2 = mod (d1 + d2) 10
--}
+--type Sign = Bool
+--type Digits = [Int]
+
+data BigNumber = BigNumber {sign :: Bool, digits :: [Int]} deriving (Eq, Read)
+
+--data Digit = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
 nDigits :: Int -> Int
 nDigits n
-  | ((mod 10 n) == 10) = 1 + nDigits (div n 10)
+  | n < 0 = nDigits (abs n)
+  | abs n >= 10 = 1 + nDigits (div n 10)
   | otherwise = 1
 
-intToBigN_Reverse :: Int -> BigNumber
-intToBigN_Reverse n
-  | n < 0 = (intToBigN_Reverse (div n 10)) ++ [(-(mod n 10))]
-  | otherwise = (intToBigN_Reverse (div n 10)) ++ [(mod n 10)]
+
+buildBigN :: Bool -> Int -> [Int] -> BigNumber
+buildBigN b n l 
+  | nDigits n == 1 = BigNumber b (n:l)
+  | otherwise = buildBigN b (div (abs n) 10) (mod (abs n) 10 : l)
+
+intToBigN :: Int -> BigNumber
+intToBigN n
+  | n < 0 = buildBigN False n []
+  | otherwise = buildBigN True n []
+
+instance Show BigNumber where 
+  show (BigNumber b l)
+    | b = "+" ++ show l
+    | otherwise = "-" ++ show l
+
+getBigNSize :: BigNumber -> Int
+getBigNSize bn = length (digits bn)
 
 {-
-intToL :: Int -> [Int]
-intToL n
-  | n < 0 = (intToL (div n 10)) ++ [(-(mod n 10))]
-  | otherwise = (intToL (div n 10)) ++ [(mod n 10)]
-  -}
+instance Show BigNumber where 
+  show (BigNumber b l)
+    | b = show l
+    | otherwise = "-" ++ show l
+    -}
+  
+scanner :: String -> BigNumber
+scanner s = intToBigN (read s::Int)
 
-intToL :: Int -> [Int]
-intToL n
-  | (nDigits n == 1) = [n]
-  | n > 0 = (intToL (div n 10)) ++ [(mod n 10)]
-  | otherwise = (intToL (-(div (-n) 10))) ++ [-(mod n 10)]
+bigNToString :: BigNumber -> String -> String
+bigNToString bn s 
+  | getBigNSize bn == 1 = s ++ show (head (digits bn))
+  | otherwise = bigNToString (BigNumber (sign bn) (tail (digits bn))) (s ++ show (head (digits bn)))
 
---scanner :: String -> BigNumber
---scanner =
+output :: BigNumber -> String
+output bn
+  | sign bn = bigNToString bn ""
+  | otherwise = bigNToString bn "-"
+
+
+zeroStuffing :: BigNumber -> Int -> BigNumber
+zeroStuffing bn nz
+  | nz == 1 = BigNumber (sign bn) (0 : digits bn)
+  | otherwise = zeroStuffing (BigNumber (sign bn) (0 : digits bn)) (nz-1)
+
+carrySum :: Int -> Int -> (Int, Int)
+carrySum n1 n2 = (div (n1 + n2) 10 ,mod (n1 + n2) 10)
+
+{-
+sumTuplesToBigN :: [(Int, Int)] -> BigNumber -> BigNumber
+sumTuplesToBigN l bn
+  | length l == 1 = if
+    |first (head l) == 1 -> BigNumber (sign bn) ((second (head l) + first ()  digits bn)))
+    |otherwise -> BigNumber (sign bn) ((second (head (tail l))) : digits bn)
+  | otherwise = if
+    |first (head l) == 1 -> sumTuplesToBigN (tail l) BigNumber (sign bn) ((second (head (tail l)) + 1) : digits bn)
+    |otherwise -> sumTuplesToBigN (tail l) (BigNumber (sign bn) ((second (head (tail l))) : digits bn))
+
+parseSumTuples :: [(Int, Int)] -> BigNumber
+parseSumTuples l = -}
+
