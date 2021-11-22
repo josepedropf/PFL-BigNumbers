@@ -1,22 +1,21 @@
 {-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 {-# LANGUAGE MultiWayIf #-}
 import Distribution.Simple.Build (build)
---type BigNumber = [Int]
---Big Decision
 
+--type BigNumber = [Int]
 --type Sign = Bool
 --type Digits = [Int]
 
 data BigNumber = BigNumber {sign :: Bool, digits :: [Int]} deriving (Eq, Read)
 
---data Digit = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+bnZero :: BigNumber --Constant
+bnZero = BigNumber True [0]
 
 nDigits :: Int -> Int
 nDigits n
   | n < 0 = nDigits (abs n)
   | abs n >= 10 = 1 + nDigits (div n 10)
   | otherwise = 1
-
 
 buildBN :: Bool -> Int -> [Int] -> BigNumber
 buildBN b n l
@@ -25,12 +24,13 @@ buildBN b n l
 
 intToBN :: Int -> BigNumber
 intToBN n
+  | n == 0 = bnZero
   | n < 0 = buildBN False n []
   | otherwise = buildBN True n []
 
 instance Show BigNumber where
   show (BigNumber b l)
-    | b = "+" ++ show l
+    | b = "+" ++ show l -- b = show l
     | otherwise = "-" ++ show l
 
 getBNSize :: BigNumber -> Int
@@ -44,13 +44,6 @@ instance Ord BigNumber where
     | otherwise =  compare zdl1 zdl2
     where zdl1 = (digits (zeroDestuffing (BigNumber s1 l1)))
           zdl2 = (digits (zeroDestuffing (BigNumber s2 l2)))
-
-{-
-instance Show BigNumber where
-  show (BigNumber b l)
-    | b = show l
-    | otherwise = "-" ++ show l
-    -}
 
 scanner :: String -> BigNumber
 scanner s = intToBN (read s::Int)
@@ -90,15 +83,18 @@ negativeBN bn = BigNumber False (digits bn)
 simBN :: BigNumber -> BigNumber
 simBN bn = BigNumber (not (sign bn)) (digits bn)
 
+incrementBN :: BigNumber -> BigNumber
+incrementBN bn = sumBN bn (BigNumber True [1])
+
+decrementBN :: BigNumber -> BigNumber
+decrementBN bn = subBN bn (BigNumber True [1])
 
 zipWithBN :: Bool -> BigNumber -> BigNumber -> (Int->Int->Int) -> BigNumber
 zipWithBN s bn1 bn2 op = zeroDestuffing (BigNumber s (zipWith (op) (digits (zeroStuffingExact bn1 nz)) (digits (zeroStuffingExact bn2 nz))) )
   where nz = (max (length (digits bn1)) (length (digits bn2))) + 1
 
-
 mapBN :: Bool -> BigNumber -> (Int->Int) -> BigNumber
 mapBN s bn op = BigNumber s (map (op) (digits bn))
---mapBN s bn op = zeroDestuffing (BigNumber s (map (op) (digits (zeroStuffing bn 1))))
 
 rawSumBN :: BigNumber -> BigNumber -> BigNumber
 rawSumBN bn1 bn2
@@ -110,7 +106,7 @@ rawSumBN bn1 bn2
 
 rawSubBN :: BigNumber -> BigNumber -> BigNumber
 rawSubBN bn1 bn2
-  | bn1 == bn2 = (scanner "0")
+  | bn1 == bn2 = bnZero
   | (sign bn1) && (sign bn2) = (if bn1 < bn2
     then negativeBN (rawSubBN bn2 bn1)
     else (BigNumber True (zipWith (-) (digits (zeroStuffingExact bn1 nz)) (digits (zeroStuffingExact bn2 nz))) ))
@@ -148,7 +144,7 @@ raiseTenBN bn power
 
 rawMulBN :: BigNumber -> BigNumber -> BigNumber -> Int -> BigNumber
 rawMulBN bn mul_bn res_bn power
-  | bn == scanner "0" || mul_bn == scanner "0" = scanner "0"
+  | bn == bnZero || mul_bn == bnZero = bnZero
   | (not (sign bn)) && (not (sign mul_bn)) = BigNumber True (digits (rawMulBN (absBN bn) (absBN mul_bn) res_bn power))
   | (sign bn) /= (sign mul_bn) = BigNumber False (digits (rawMulBN (absBN bn) (absBN mul_bn) res_bn power))
   | absBN mul_bn > absBN bn = rawMulBN mul_bn bn res_bn power
@@ -157,17 +153,34 @@ rawMulBN bn mul_bn res_bn power
   | otherwise = rawMulBN bn (BigNumber (sign mul_bn) (reverse(tail (reverse (digits mul_bn))))) (sumBN res_bn (raiseTenBN (processOperation(mapBN True bn (*(last (digits mul_bn))))) power)) (power + 1)
 
 mulBN :: BigNumber -> BigNumber -> BigNumber
-mulBN bn1 bn2 = zeroDestuffing (rawMulBN bn1 bn2 (scanner "0") 0)
+mulBN bn1 bn2 = zeroDestuffing (rawMulBN bn1 bn2 bnZero 0)
 
-{-
-sumTuplesToBigN :: [(Int, Int)] -> BigNumber -> BigNumber
-sumTuplesToBigN l bn
-  | length l == 1 = if
-    |first (head l) == 1 -> BigNumber (sign bn) ((second (head l) + first ()  digits bn)))
-    |otherwise -> BigNumber (sign bn) ((second (head (tail l))) : digits bn)
-  | otherwise = if
-    |first (head l) == 1 -> sumTuplesToBigN (tail l) BigNumber (sign bn) ((second (head (tail l)) + 1) : digits bn)
-    |otherwise -> sumTuplesToBigN (tail l) (BigNumber (sign bn) ((second (head (tail l))) : digits bn))
+rawDivBN :: BigNumber -> BigNumber -> BigNumber -> BigNumber -> Bool -> Bool -> (BigNumber, BigNumber)
+rawDivBN bn div_bn quo_bn rem_bn quo_sign rem_sign
+  | bn == bnZero = (bnZero, bnZero)
+  | absBN div_bn > absBN bn = (bnZero, BigNumber rem_sign (digits bn))
+  | (not (sign bn)) && (not (sign div_bn)) = rawDivBN (absBN bn) (absBN div_bn) quo_bn rem_bn True (sign bn)
+  | (sign bn) /= (sign div_bn) = rawDivBN (absBN bn) (absBN div_bn) quo_bn rem_bn False (sign bn)
+  | rem_bn == bnZero = (BigNumber quo_sign (digits quo_bn), bnZero)
+  | rem_bn > bnZero && rem_bn < (absBN div_bn) = (BigNumber quo_sign (digits quo_bn), BigNumber rem_sign (digits rem_bn))
+  | otherwise = rawDivBN bn div_bn (incrementBN quo_bn) (subBN (absBN rem_bn) (absBN div_bn)) quo_sign rem_sign
 
-parseSumTuples :: [(Int, Int)] -> BigNumber
-parseSumTuples l = -}
+divBN :: BigNumber -> BigNumber -> (BigNumber, BigNumber)
+divBN bn1 bn2 = rawDivBN bn1 bn2 bnZero (absBN bn1) True True
+
+safeDivBN :: BigNumber -> BigNumber -> Maybe (BigNumber, BigNumber)
+safeDivBN bn1 bn2
+    | bn2 == bnZero = Nothing
+    | otherwise = Just (divBN bn1 bn2)
+
+
+
+
+
+
+
+
+
+
+
+--End
