@@ -1,7 +1,4 @@
-{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
-{-# LANGUAGE MultiWayIf #-}
-import Distribution.Simple.Build (build)
-
+module BigNumber (BigNumber, bnZero, bnOne, bnTwo, scanner, sumBN, subBN, mulBN, divBN, safeDivBN, zipWithBN, mapBN, incrementBN, decrementBN, output, simBN, absBN, negativeBN) where
 --type BigNumber = [Int]
 --type Sign = Bool
 --type Digits = [Int]
@@ -10,6 +7,12 @@ data BigNumber = BigNumber {sign :: Bool, digits :: [Int]} deriving (Eq, Read)
 
 bnZero :: BigNumber --Constant
 bnZero = BigNumber True [0]
+
+bnOne :: BigNumber --Constant
+bnOne = BigNumber True [1]
+
+bnTwo :: BigNumber --Constant
+bnTwo = BigNumber True [2]
 
 nDigits :: Int -> Int
 nDigits n
@@ -45,8 +48,15 @@ instance Ord BigNumber where
     where zdl1 = (digits (zeroDestuffing (BigNumber s1 l1)))
           zdl2 = (digits (zeroDestuffing (BigNumber s2 l2)))
 
+oldScanner :: String -> BigNumber
+oldScanner s = intToBN (read s::Int)
+
 scanner :: String -> BigNumber
-scanner s = intToBN (read s::Int)
+scanner s 
+  | (read s::Int) == 0 = bnZero
+  | head s == '-' = BigNumber False (map (read . pure :: Char -> Int) (tail s))
+  | head s == '+' = BigNumber True (map (read . pure :: Char -> Int) (tail s))
+  | otherwise = BigNumber True (map (read . pure :: Char -> Int) s)
 
 convertBNToString :: BigNumber -> String -> String
 convertBNToString bn s
