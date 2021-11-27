@@ -1,3 +1,5 @@
+module Fib (fibRec, fibList, fibListInf, fibRecBNBN, fibListBNBN, fibListInfBN) where 
+import Distribution.Simple.Program.HcPkg (list)
 import BigNumber ( BigNumber, bnZero, bnOne, bnTwo, sumBN, subBN, bnToInt )
 
 {- FIB WITH INT -}
