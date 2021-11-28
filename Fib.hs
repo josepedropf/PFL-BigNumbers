@@ -1,4 +1,4 @@
-module Fib (fibRec, fibRecBN, fibLista, fibListaInfinita, fibListaBN, fibListaInfinitaBN) where 
+module Fib (fibRec, fibRecBN, fibRecIntBN, fibLista, fibListaInfinita, fibListaBN, fibListaInfinitaBN, fibListaIntBN) where 
 import BigNumber ( BigNumber, bnZero, bnOne, bnTwo, somaBN, subBN, indexBN, bnToInt )
 
 {- FIB WITH INT -}
@@ -13,10 +13,7 @@ fibLista 1 = 1
 fibLista n = fl !! n
     where  fl = 0 : 1 : [fl !! (x-2) + fl !! (x-1) | x <- [2..n]]
 
-oldFibListaInfinita :: [Integer] -- Generates an infinite list of Fibonacci numbers and returns the nth Fibonacci number
-oldFibListaInfinita = 0 : 1 : [a+b | (a,b)<-zip oldFibListaInfinita (tail oldFibListaInfinita)]
-
-fibListaInfinita :: (Integral a) => [a] -- Generates an infinite list of Fibonacci numbers and returns the nth Fibonacci number
+fibListaInfinita :: [Integer] -- Generates an infinite list of Fibonacci numbers and returns the nth Fibonacci number
 fibListaInfinita = 0 : 1 : zipWith (+) fibListaInfinita (tail fibListaInfinita)
 
 fibMinMax :: Int -> Int -> [Integer]
@@ -49,15 +46,10 @@ fibListaBN bn
     | otherwise = indexBN fl bn
         where  fl = bnZero : bnOne : [somaBN (fl !! (x-2)) (fl !! (x-1)) | x <- [2..bnToInt bn]]
 
-oldFibListaInfinitaBN :: [BigNumber] -- Generates an infinite list of Fibonacci numbers and returns the nth Fibonacci number as a BigNumber
-oldFibListaInfinitaBN = bnZero : bnOne : [somaBN a b | (a,b)<-zip oldFibListaInfinitaBN (tail oldFibListaInfinitaBN)]
-
 fibListaInfinitaBN :: [BigNumber] -- Generates an infinite list of Fibonacci numbers and returns the nth Fibonacci number as a BigNumber
 fibListaInfinitaBN = bnZero : bnOne : zipWith somaBN fibListaInfinitaBN (tail fibListaInfinitaBN)
 
 fibMinMaxBN :: Int -> Int -> [BigNumber]  -- Returns an interval of Fibonacci numbers between nmin and nmax as BigNumbers
 fibMinMaxBN nmin nmax = map (fibListaInfinitaBN!!) [nmin..nmax]
-
-
 
 --End

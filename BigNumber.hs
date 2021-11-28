@@ -1,14 +1,9 @@
 module BigNumber (BigNumber, bnZero, bnOne, bnTwo, scanner, somaBN, subBN, mulBN, divBN, safeDivBN, indexBN, 
   zipWithBN, mapBN, incrementBN, decrementBN, output, simBN, absBN, negativeBN, intToBN, buildBN, bnToInt, rawDivBN) where
 
---type BigNumber = [Int]
---type Sign = Bool
---type Digits = [Int]
-
-
 {- BN DECLARATION -}
 data BigNumber = BigNumber {sign :: Bool, digits :: [Int]} deriving (Read)
-
+-- sign True <=> Positive BigNumber && sign False <=> Negative BigNumber
 
 {- CONSTANTS -}
 bnZero :: BigNumber --Constant (=0)
@@ -127,19 +122,20 @@ raiseTenBN bn power
   | power == 1 = BigNumber (sign bn) (digits bn ++ [0])
   | otherwise = raiseTenBN (BigNumber (sign bn) (digits bn ++ [0])) (power - 1)
 
-getCloseBN :: BigNumber -> BigNumber -> (BigNumber, BigNumber)
+getCloseBN :: BigNumber -> BigNumber -> (BigNumber, BigNumber) {-- Returns the closest possible BigNumber to the target, obtainable by combining
+ the getCloseBNPower and getCloseBNMult functions on the base BigNumber --}
 getCloseBN target_bn base_bn = (fst bnMul, mulBN (snd bnPower) (snd bnMul))
   where bnMul = getCloseBNMult target_bn bnTwo (fst bnPower)
         bnPower = getCloseBNPower target_bn 1 base_bn
 
-getCloseBNPower :: BigNumber -> Int -> BigNumber -> (BigNumber, BigNumber)
+getCloseBNPower :: BigNumber -> Int -> BigNumber -> (BigNumber, BigNumber) -- Returns the closest possible BigNumber to the target, obtainable by using the raiseTenBN function on the base BigNumber 
 getCloseBNPower target_bn power base_bn 
   | base_bn_raised < target_bn = getCloseBNPower target_bn (power + 1) base_bn
   | base_bn_raised == target_bn = (base_bn_raised, raiseTenBN bnOne power)
   | otherwise = (raiseTenBN base_bn (power - 1), raiseTenBN bnOne (power - 1))
   where base_bn_raised = raiseTenBN base_bn power
 
-getCloseBNMult :: BigNumber -> BigNumber -> BigNumber -> (BigNumber, BigNumber)
+getCloseBNMult :: BigNumber -> BigNumber -> BigNumber -> (BigNumber, BigNumber) -- Returns the closest possible BigNumber to the target, obtainable by multiplying the base BigNumber
 getCloseBNMult target_bn mul_bn base_bn 
   | base_bn_multp < target_bn = getCloseBNMult target_bn (incrementBN mul_bn) base_bn
   | base_bn_multp == target_bn = (base_bn_multp, mul_bn)
@@ -150,18 +146,6 @@ getCloseBNMult target_bn mul_bn base_bn
 {- BN OPERATION AUXILIARY FUNCTIONS -}
 carrySum :: Int -> Int -> (Int, Int) -- Creates a Tuple with the format (carry, result digit) from a sum of two digits
 carrySum n1 n2 = (div (n1 + n2) 10 ,mod (n1 + n2) 10)
-
-oldProcessOperationCarry :: [Int] -> Int -> [Int] -> [Int] {-- Auxiliary Function that processes the operations' digit by digit result. 
- After a raw sum or subtraction is made digit by digit (which might result in some "digits" being negative or bigger than 10) this function interprets
- every partial result and turns it into a list of Ints that can be a proper BigNumber's digits list. It uses a carry variable so that for example when
- a digit is bigger than 10, only the unit's digit is kept and the next digit is incremented by one. When a digit is negative it means that the next one
- should be decremented by one and the digit to be kept is "10 - the original digit" --}
-oldProcessOperationCarry l carry res
-  | null l = res
-  | current >= 0 && current <= 9 = processOperationCarry (init l) 0 (current : res)
-  | current >= 10 = processOperationCarry (init l) 1 (mod current 10 : res)
-  | current < 0 = processOperationCarry (init l) (-1) ((current + 10) : res)
-  where current = last l + carry
 
 processOperationCarry :: [Int] -> Int -> [Int] -> [Int] {-- Auxiliary Function that processes the operations' digit by digit result. 
  After a raw sum or subtraction is made digit by digit (which might result in some "digits" being negative or bigger than 10) this function interprets
@@ -199,18 +183,6 @@ rawSubBN bn1 bn2
   | not (sign bn1) && sign bn2 = negativeBN (rawSomaBN (absBN bn1) bn2)
   where nz = max (length (digits bn1)) (length (digits bn2)) + 1
 
-rawMulBN :: BigNumber -> BigNumber -> BigNumber -> Int -> BigNumber {-- Auxiliary function that multiplies two BigNumbers. It uses a result accumulator
- and another variable to keep track of the power of ten of the next partial multiplication. A partial multiplication is an operation using one digit of the second
- operand. Adding every partial multiplication considering its power of ten will give the correct BigNumber result to the original operation --}
-rawMulBN bn mul_bn res_bn power
-  | bn == bnZero || mul_bn == bnZero = bnZero
-  | not (sign bn) && not (sign mul_bn) = absBN absMul
-  | sign bn /= sign mul_bn = negativeBN absMul
-  | absBN mul_bn > absBN bn = rawMulBN mul_bn bn res_bn power
-  | getBNSize mul_bn == 1 = somaBN res_bn (raiseTenBN (processOperation(mapBN True bn (*last (digits mul_bn)))) power)
-  | otherwise = rawMulBN bn (BigNumber (sign mul_bn) (init(digits mul_bn))) (somaBN res_bn (raiseTenBN (processOperation(mapBN True bn (*last (digits mul_bn)))) power)) (power + 1)
-  where absMul = rawMulBN (absBN bn) (absBN mul_bn) res_bn power
-
 oldRawMulBN :: BigNumber -> BigNumber -> BigNumber -> BigNumber {-- Auxiliary function that multiplies two BigNumbers. 
 It uses a result accumulator and everytime the first operand is added to said accumulator, the second operand is decremented. 
 It returns the correct BigNumber result to the original operation --}
@@ -222,6 +194,18 @@ oldRawMulBN bn mul_bn res_bn
   | mul_bn == bnOne = somaBN res_bn bn
   | otherwise = oldRawMulBN bn (decrementBN mul_bn) (somaBN res_bn bn)
   where absMul = oldRawMulBN (absBN bn) (absBN mul_bn) res_bn
+
+rawMulBN :: BigNumber -> BigNumber -> BigNumber -> Int -> BigNumber {-- Auxiliary function that multiplies two BigNumbers. It uses a result accumulator
+ and another variable to keep track of the power of ten of the next partial multiplication. A partial multiplication is an operation using one digit of the second
+ operand. Adding every partial multiplication considering its power of ten will give the correct BigNumber result to the original operation --}
+rawMulBN bn mul_bn res_bn power
+  | bn == bnZero || mul_bn == bnZero = bnZero
+  | not (sign bn) && not (sign mul_bn) = absBN absMul
+  | sign bn /= sign mul_bn = negativeBN absMul
+  | absBN mul_bn > absBN bn = rawMulBN mul_bn bn res_bn power
+  | getBNSize mul_bn == 1 = somaBN res_bn (raiseTenBN (processOperation(mapBN True (zeroStuffing bn 1) (*last (digits mul_bn)))) power)
+  | otherwise = rawMulBN bn (BigNumber (sign mul_bn) (init(digits mul_bn))) (somaBN res_bn (raiseTenBN (processOperation(mapBN True (zeroStuffing bn 1) (*last (digits mul_bn)))) power)) (power + 1)
+  where absMul = rawMulBN (absBN bn) (absBN mul_bn) res_bn power
 
 oldRawDivBN :: BigNumber -> BigNumber -> BigNumber -> BigNumber -> Bool -> Bool -> (BigNumber, BigNumber) {-- Auxiliary function that divides two BigNumbers.
  Applies the Euclidian Algorithm using a variable to store the remainder and the signs needed, in order to work with absolutes. It keeps subtracting the divisor
@@ -252,28 +236,21 @@ rawDivBN bn div_bn quo_bn rem_bn
 oldScanner :: String -> BigNumber -- Converts a string into a BigNumber
 oldScanner s
   | (read s::Int) == 0 = bnZero
-  | head s == '-' = BigNumber False (map (read . pure :: Char -> Int) (tail s))
   | head s == '+' = BigNumber True (map (read . pure :: Char -> Int) (tail s))
+  | head s == '-' = BigNumber False (map (read . pure :: Char -> Int) (tail s))
   | otherwise = BigNumber True (map (read . pure :: Char -> Int) s)
 
 scanner :: String -> BigNumber -- Converts a string into a BigNumber
 scanner s 
   | (read s::Int) == 0 = bnZero
-  | otherwise = BigNumber signal list
-  where signal = head s /= '-'
-        list = map (read . pure :: Char -> Int) nstring
-        nstring = if head s == '-' || head s == '+' then tail s else s 
+  | otherwise = BigNumber (head s /= '-') (map (read . pure :: Char -> Int) nstring)
+  where nstring = if head s == '-' || head s == '+' then tail s else s 
 
 convertBNToString :: BigNumber -> String -> String {-- Auxiliary function that converts a BigNumber
  into a string by consuming the BigNumber's digits and adding them to an accumulator string --}
 convertBNToString bn s
   | getBNSize bn == 1 = s ++ show (head (digits bn))
   | otherwise = convertBNToString (BigNumber (sign bn) (tail (digits bn))) (s ++ show (head (digits bn)))
-
-oldOutput :: BigNumber -> String -- Converts a BigNumber into a string
-oldOutput bn
-  | sign bn = convertBNToString bn ""
-  | otherwise = convertBNToString bn "-"
 
 output :: BigNumber -> String -- Converts a BigNumber into a string
 output bn = signal ++ concatMap show (digits bn)
@@ -288,8 +265,8 @@ subBN :: BigNumber -> BigNumber ->BigNumber -- Subtracts two BigNumbers using th
 subBN bn1 bn2 = processOperation (rawSubBN bn1 bn2)
 
 mulBN :: BigNumber -> BigNumber -> BigNumber -- Multiplies two BigNumbers using the rawMulBN function
---mulBN bn1 bn2 = processOperation (rawMulBN bn1 bn2 bnZero 0)
-mulBN bn1 bn2 = processOperation (oldRawMulBN bn1 bn2 bnZero)
+mulBN bn1 bn2 = processOperation (rawMulBN bn1 bn2 bnZero 0)
+--mulBN bn1 bn2 = processOperation (oldRawMulBN bn1 bn2 bnZero)
 
 divBN :: BigNumber -> BigNumber -> (BigNumber, BigNumber) -- Divides two BigNumbers using the rawDivBN function
 --divBN bn1 bn2 = oldRawDivBN bn1 bn2 bnZero (absBN bn1) True True
@@ -299,7 +276,6 @@ safeDivBN :: BigNumber -> BigNumber -> Maybe (BigNumber, BigNumber) -- Divides t
 safeDivBN bn1 bn2
     | bn2 == bnZero = Nothing
     | otherwise = Just (divBN bn1 bn2)
-
 
 
 --End
