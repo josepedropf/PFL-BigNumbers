@@ -1,6 +1,7 @@
 # PFL-BigNumbers
 
-Haskell programming project about handling big numbers in lists
+Haskell programming project about handling big numbers in lists.    
+Developed by José Pedro Peixoto Ferreira (up201904515) and José Frederico Rodrigues (up201807626)    
 
 ## Function List
 
@@ -265,8 +266,9 @@ output :: BigNumber -> String -- Converts a BigNumber into a string
 The goal of the `ouput` function is to convert a BigNumber into a string. We opted to convert a postive BigNumber without adding to the result string the `'+'` character, while naturally when the BigNumber is negative it's preceded by `'-'`. So if the BigNumber is negative, we concatenate `'-'` in the start of the result string. For the digits we use `concatMap show digits`, so that the `show` function converts each `Int` to `String` and `concatMap` puts the string all together.
 
 ### processOperation
-~~~~hs    
-processOperation :: BigNumber -> BigNumber {-- Wrapper Function that cleans a BigNumber after a raw operation has been made. It combines zeroDestuffing and processOperationCarry to make sure that a BigNumber doesn't have unnecessary zeros on the left and "digits" that might be bigger than 10 or negative --}
+~~~~hs        
+processOperation :: BigNumber -> BigNumber {-- Wrapper Function that cleans a BigNumber after a raw operation has been made.
+It combines zeroDestuffing and processOperationCarry to make sure that a BigNumber doesn't have unnecessary zeros on the left and "digits" that might be bigger than 10 or negative --}
 ~~~~
 `processOperation` is a function that "normalizes" a BigNumber returned by either the rawSomaBN or the rawSubBN functions. It essentially is a wrapper to ` processOperationCarry` that also applies the `zeroDestuffing` method and by doing this ensures there are no unnecessary zeros on the leftmost part of the BigNumber. The `processOperationCarry` as it's own name indicates, processes "digits" (although they really aren't digits at this point, as it's not guaranteed that they are in the interval [1..9]) that are either greater than 10 or negative. If the "digit" is greater than 10, it means only the unit part should reamin and a unit must be carried to the next "digit". In the other hand, if the "digit" is negative, this function carries subtracts one from the next "digit" while keeping only the difference between ten and the unprocessed "digit" as the actual result for that position on the list. We thought this approach was a good fit for the task in hand as it works with both sum and subtraction and keeps these functions quite simple (basically just a `zipWith`). 
 
@@ -337,7 +339,7 @@ The quotient is set to the headstart and the remainder is calculated according t
 > Fib.hs functions
 
 | **Function** | **Test Description** | **Input** | **Result** |
-| --------------------------|--------------------------------------------------------------------------------|  ----------------------------|----------------------------|
+| --------------------------|----------------------------------------------------------------------------------------------------------------------------------------|  ----------------------------|----------------------------|
 | fibRec                    | This function should return the fibonacci number at index 9 | 9              |34   |
 | fibRec                    | This function should return the fibonacci number at index 20 | 20             |6765 |
 | fibrec                    | This function should return the fibonacci number at index 0  | 0              |0    |
@@ -350,8 +352,8 @@ The quotient is set to the headstart and the remainder is calculated according t
 | fibListaBN   | This function should return the fibonacci number at index 46 | 46 | 1836311903 |
 | fibListaBN   | This function should return the fibonacci number at index 70 | 70 | 190392490709135 |
 | fibListaBN   | This function should return the fibonacci number at index 210 | 210 | 34507973060837282187130139035400899082304280 |
-| fibListaBN   | This function should return the fibonacci number at index 2100 | 2100 |3346258772894381788558434639941537877209053265053766990305264828948531270612382453397314273063065935765746863854356162204522216176489247137222743768063462632211603523255594286278039122388564394749151100734726712758604422072167490548845665501380314253429613265231899378789412217095899219158241009830329440878555524678295655938399582702177130182044596966419762299111936890305975459231961735528447500193845931171707920809046738569678456857200|
-| fibListaInfinitaBN | This function should return the fibonacci number at index 500 | 500 | 139423224561697880139724382870407283950070256587697307264108962948325571622863290691557658876222521294125 |
+| fibListaBN   | This function should return the fibonacci number at index 2100 | 2100 |334625877289438178855843463994153787720905326505376699030526482894853127061238245339731427306306593576574686385435616220452221617648924713722274376806346263221160352325559428627803912238856439474915110073472671275860442207216749054884566550138031425342961326523l1899378789412217095899219158241009830329440878555524678295655938399582702177130182044596966419762299111936890305975459231961735528447500193845931171707920809046738569678456857200|
+| fibListaInfinitaBN | This function should return the fibonacci number at index 500 | 500 |139423224561697880139724382870407283950070256587697307264108962948325571622863290691557658876222521294125 |
 | fibListaInfinitaBN | This function should return the fibonacci number at index 1300 | 1300 | 21599680283161715807847052066540433422883515772119658063766498972503219104278316186542706552263614678844605521205471865945806520838603391933189946547621953603163789045147079719349493433360218263689302235202664706161893962580201172846238976101277970849319269574650368333475 |
 
 >BigNumber.hs functions
