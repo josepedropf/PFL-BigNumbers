@@ -149,9 +149,9 @@ processOperation :: BigNumber -> BigNumber {-- Wrapper Function that cleans a Bi
  processOperationCarry to make sure that a BigNumber doesn't have unnecessary zeros on the left and "digits" that might be bigger than 10 or negative --}
 processOperation bn = zeroDestuffing (BigNumber (sign bn) (processOperationCarry (digits bn) 0 []))
 
-rawsomaBN :: BigNumber -> BigNumber -> BigNumber {-- Auxiliary function that sums "blindly" the digits of two BigNumbers into another BigNumber. 
+rawSomaBN :: BigNumber -> BigNumber -> BigNumber {-- Auxiliary function that sums "blindly" the digits of two BigNumbers into another BigNumber. 
  The provisory BigNumber returned by this functions must then be processed by processOperation function to become the actual result of the sum intended. --}
-rawsomaBN bn1 bn2
+rawSomaBN bn1 bn2
   | sign bn1 == sign bn2 = BigNumber (sign bn1) (zipWith (+) (digits (zeroStuffingExact bn1 nz)) (digits (zeroStuffingExact bn2 nz)))
   | sign bn1 = rawSubBN bn1 (absBN bn2)
   | otherwise = rawSubBN bn2 (absBN bn1)
@@ -165,8 +165,8 @@ rawSubBN bn1 bn2
       then negativeBN (rawSubBN bn2 bn1)
       else BigNumber True (zipWith (-) (digits (zeroStuffingExact bn1 nz)) (digits (zeroStuffingExact bn2 nz)))
   | not (sign bn1) && not (sign bn2) = rawSubBN (absBN bn2) (absBN bn1)
-  | sign bn1 && not (sign bn2) = rawsomaBN bn1 (absBN bn2)
-  | not (sign bn1) && sign bn2 = negativeBN (rawsomaBN (absBN bn1) bn2)
+  | sign bn1 && not (sign bn2) = rawSomaBN bn1 (absBN bn2)
+  | not (sign bn1) && sign bn2 = negativeBN (rawSomaBN (absBN bn1) bn2)
   where nz = max (length (digits bn1)) (length (digits bn2)) + 1
 
 oldRawMulBN :: BigNumber -> BigNumber -> BigNumber -> Int -> BigNumber {-- Auxiliary function that multiplies two BigNumbers. It uses a result accumulator
@@ -229,7 +229,7 @@ scanner s
   | otherwise = BigNumber signal list
   where signal = head s /= '-'
         list = map (read . pure :: Char -> Int) nstring
-        nstring = if head s == '-' || head s == '+' then tail s else s
+        nstring = if head s == '+' || head s == '-' then tail s else s
 
 convertBNToString :: BigNumber -> String -> String {-- Auxiliary function that converts a BigNumber
  into a string by consuming the BigNumber's digits and adding them to an accumulator string --}
@@ -248,8 +248,8 @@ output bn = signal ++ concatMap show (digits bn)
 
 
 {- BN OPERATIONS -}
-somaBN :: BigNumber -> BigNumber ->BigNumber -- Performs the sum of two BigNumbers using the rawsomaBN function
-somaBN bn1 bn2 = processOperation (rawsomaBN bn1 bn2)
+somaBN :: BigNumber -> BigNumber ->BigNumber -- Performs the sum of two BigNumbers using the rawSomaBN function
+somaBN bn1 bn2 = processOperation (rawSomaBN bn1 bn2)
 
 subBN :: BigNumber -> BigNumber ->BigNumber -- Subtracts two BigNumbers using the rawSubBN function
 subBN bn1 bn2 = processOperation (rawSubBN bn1 bn2)
