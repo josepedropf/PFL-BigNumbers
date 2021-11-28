@@ -1,6 +1,19 @@
-import BigNumber ( BigNumber,output, scanner, bnZero, bnOne, bnTwo, sumBN, subBN, mulBN, divBN, bnToInt )
-import Fib (fibRec, fibList, fibListInf, fibRecBNBN, fibListBNBN, fibListInfBN)
+import BigNumber ( BigNumber,output, scanner, bnZero, bnOne, bnTwo, somaBN, subBN, mulBN, divBN, bnToInt, rawDivBN, absBN, safeDivBN)
+import Fib (fibRec, fibLista, fibListaInfinita, fibRecBN, fibRecBNBN, fibListaBNBN, fibListaInfinitaBN)
 -- Testing scanner and output is kinda weird and redundant with IO ()
+
+{- ----------------------------Auxiliary Functions------------------------------------ -}
+outputTuple :: (BigNumber, BigNumber) -> String
+outputTuple tup = "(" ++ output (fst tup) ++ ", " ++ output (snd tup) ++ ")"
+
+outputMaybeBN :: Maybe BigNumber -> String
+outputMaybeBN = maybe "There is no BN" output
+
+outputMaybeTuple :: Maybe (BigNumber, BigNumber) -> String -> String
+outputMaybeTuple mtp nothing_msg
+    | mtp == Nothing = nothing_msg
+    | otherwise = "(" ++ outputMaybeBN (fst <$> mtp) ++ ", " ++ outputMaybeBN (snd <$> mtp) ++ ")"
+
 
 {- ----------------------------Testing Fib.hs functions------------------------------- -}
 
@@ -8,19 +21,28 @@ testFibRec :: IO ()
 testFibRec = do
     putStr "This function will return the nth Fibonacci number, n = "
     n <- getLine
-    putStrLn (show (fibRec (read n :: Int)))
+    --putStrLn (show (fibRec (read n :: Int)))
+    print (fibRec (read n :: Int))
 
-testFibList :: IO ()
-testFibList = do
+testfibLista :: IO ()
+testfibLista = do
     putStr "This function will return the nth Fibonacci number, n = "
     n <- getLine
-    putStrLn (show (fibList (read n :: Int)))
+    --putStrLn (show (fibLista (read n :: Int)))
+    print (fibLista (read n :: Int))
 
-testFibListInf :: IO ()
-testFibListInf = do
+testfibListaInfinita :: IO ()
+testfibListaInfinita = do
     putStr "This function will return the nth Fibonacci number, n = "
     n <- getLine
-    putStrLn (show (fibListInf !! (read n :: Int)))
+    --putStrLn (show (fibListaInfinita !! (read n :: Int)))
+    print (fibListaInfinita !! (read n :: Int))
+
+testFibRecBN :: IO ()
+testFibRecBN = do
+    putStr "This function will return the nth Fibonacci number using the BigNumber library, n = "
+    n <- getLine
+    putStrLn (output(fibRecBN (read n :: Int)))
 
 testFibRecBNBN :: IO ()
 testFibRecBNBN = do
@@ -28,19 +50,20 @@ testFibRecBNBN = do
     n <- getLine
     putStrLn (output(fibRecBNBN (scanner n)))
 
-testFibListBNBN :: IO ()
-testFibListBNBN = do
+testfibListaBNBN :: IO ()
+testfibListaBNBN = do
     putStr "This function will return the nth Fibonacci number using the BigNumber library, n = "
     n <- getLine
-    putStrLn (output(fibListBNBN (scanner n)))
+    putStrLn (output(fibListaBNBN (scanner n)))
 
-testFibListInfBN :: IO ()
-testFibListInfBN = do
+testfibListaInfinitaBN :: IO ()
+testfibListaInfinitaBN = do
     putStr "This function will return the nth Fibonacci number using the BigNumber library, n = "
     n <- getLine
-    putStrLn (output(fibListInfBN !! (read n :: Int)))
+    putStrLn (output(fibListaInfinitaBN !! (read n :: Int)))
 
-{- ----------------------------Testing BigNumber.hs functions------------------------------- -}
+
+{- ----------------------------Testing BigNumber.hs functions---------------------------- -}
 
 testSomaBN :: IO ()
 testSomaBN = do
@@ -48,9 +71,9 @@ testSomaBN = do
     firstn <- getLine
     putStr "Input the second number: "
     secondn <- getLine
-    putStrLn (output(sumBN(scanner firstn) (scanner secondn)))
+    putStrLn (output(somaBN(scanner firstn) (scanner secondn)))
 
-testSubBN :: IO () 
+testSubBN :: IO ()
 testSubBN = do
     putStr "Input the first number: "
     firstn <- getLine
@@ -65,12 +88,19 @@ testMulBN = do
     putStr "Input the second number: "
     secondn <- getLine
     putStrLn (output(mulBN(scanner firstn) (scanner secondn)))
-{-
-testDivBN :: IO ()  
+
+testDivBN :: IO () -- Divides two BigNumbers using the rawDivBN function
 testDivBN = do
     putStr "Input the first number: "
     firstn <- getLine
     putStr "Input the second number: "
     secondn <- getLine
-    putStrLn (output(fst (divBN (scanner firstn) (scanner secondn)))) 
--}
+    putStrLn (outputTuple (divBN (scanner firstn) (scanner secondn)))
+
+testSafeDivBN :: IO () -- Divides two BigNumbers using the rawDivBN function
+testSafeDivBN = do
+    putStr "Input the first number: "
+    firstn <- getLine
+    putStr "Input the second number: "
+    secondn <- getLine
+    putStrLn (outputMaybeTuple (safeDivBN (scanner firstn) (scanner secondn)) "Math Error -> Division by Zero")
