@@ -24,14 +24,14 @@ testFibRec = do
     --putStrLn (show (fibRec (read n :: Int)))
     print (fibRec (read n :: Int))
 
-testfibLista :: IO () -- Helper funtion to make testing fibLista easier
+testFibLista :: IO () -- Helper funtion to make testing fibLista easier
 testfibLista = do
     putStr "This function will return the nth Fibonacci number, n = "
     n <- getLine
     --putStrLn (show (fibLista (read n :: Int)))
     print (fibLista (read n :: Int))
 
-testfibListaInfinita :: IO () -- Helper funtion to make testing fibListaInfinita easier
+testFibListaInfinita :: IO () -- Helper funtion to make testing fibListaInfinita easier
 testfibListaInfinita = do
     putStr "This function will return the nth Fibonacci number, n = "
     n <- getLine
@@ -50,13 +50,13 @@ testFibRecBNBN = do
     n <- getLine
     putStrLn (output(fibRecBNBN (scanner n)))
 
-testfibListaBNBN :: IO () -- Helper funtion to make testing fibListaBNBN easier
+testFibListaBNBN :: IO () -- Helper funtion to make testing fibListaBNBN easier
 testfibListaBNBN = do
     putStr "This function will return the nth Fibonacci number using the BigNumber library, n = "
     n <- getLine
     putStrLn (output(fibListaBNBN (scanner n)))
 
-testfibListaInfinitaBN :: IO () -- Helper funtion to make testing fibListaInfinitaBN easier
+testFibListaInfinitaBN :: IO () -- Helper funtion to make testing fibListaInfinitaBN easier
 testfibListaInfinitaBN = do
     putStr "This function will return the nth Fibonacci number using the BigNumber library, n = "
     n <- getLine

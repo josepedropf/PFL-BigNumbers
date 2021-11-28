@@ -239,9 +239,9 @@ scanner :: String -> BigNumber -- Converts a string into a BigNumber
 In this function we want to convert a string into a BigNumber. We want to accept the following formats:
 
 <ul>
-  <li>"123" &nbsp -> 123</li>
-  <li>"+123" -> 123</li>
-  <li>"-123" -> -123</li>
+  <li>"123" <=> 123</li>
+  <li>"+123" <=> 123</li>
+  <li>"-123" <=> -123</li>
 </ul>
 
 So we know that the BigNumber will only be negative if the head of the string is the character `'-'`, in every other valid case it will be positive. For the digits we use `map (read . pure :: Char -> Int)` on the remainder of the string, ignoring the sign characters (both `'-'` and `'+'`).
@@ -252,20 +252,127 @@ output :: BigNumber -> String -- Converts a BigNumber into a string
 ~~~~
 The goal of the `ouput` function is to convert a BigNumber into a string. We opted to convert a postive BigNumber without adding to the result string the `'+'` character, while naturally when the BigNumber is negative it's preceded by `'-'`. So if the BigNumber is negative, we concatenate `'-'` in the start of the result string. For the digits we use `concatMap show digits`, so that the `show` function converts each `Int` to `String` and `concatMap` puts the string all together.
 
-### processOperations
+### processOperation
 ~~~~hs    
 processOperation :: BigNumber -> BigNumber {-- Wrapper Function that cleans a BigNumber after a raw operation has been made. It combines zeroDestuffing and processOperationCarry to make sure that a BigNumber doesn't have unnecessary zeros on the left and "digits" that might be bigger than 10 or negative --}
 ~~~~
-
-`processOperations` aaanfs
+`processOperation` is a function that "normalizes" a BigNumber returned by either the rawSomaBN or the rawSubBN functions. It essentially is a wrapper to ` processOperationCarry` that also applies the `zeroDestuffing` method and by doing this ensures there are no unnecessary zeros on the leftmost part of the BigNumber. The `processOperationCarry` as it's own name indicates, processes "digits" (although they really aren't digits at this point, as it's not guaranteed that they are in the interval [1..9]) that are either greater than 10 or negative. If the "digit" is greater than 10, it means only the unit part should reamin and a unit must be carried to the next "digit". In the other hand, if the "digit" is negative, this function carries subtracts one from the next "digit" while keeping only the difference between ten and the unprocessed "digit" as the actual result for that position on the list. We thought this approach was a good fit for the task in hand as it works with both sum and subtraction and keeps these functions quite simple (basically just a `zipWith`). 
 
 ### somaBN
 ~~~~hs    
 somaBN :: BigNumber -> BigNumber ->BigNumber -- Performs the sum of two BigNumbers using the rawSomaBN function
 ~~~~
-The goal of the `ouput` function is to convert a BigNumber into a string. We opted to convert a postive BigNumber without adding to the result string the `'+'` character, while naturally when the BigNumber is negative it's preceded by `'-'`. So if the BigNumber is negative, we concatenate `'-'` in the start of the result string. For the digits we use `concatMap show digits`, so that the `show` function converts each `Int` to `String` and `concatMap` puts the string all together.
+This funtion adds two BigNumbers. It basically uses `processOperation` on the result given by `rawSomaBN`. The function `rawSomaBN` handles the signs of the operands by trying to simplify every sign combination to either a simple sum or subtraction, that is, an operation with two positive BigNumbers:
+
+<ul>
+  <li><strong>bn1 + bn2</strong> is the base sum and <strong>bn1 - bn2</strong> is the base subtraction</li>
+  <li>(-bn1) + (-bn2) <=> - (bn1 + bn2)</li>
+  <li>bn1 + (-bn2) <=> bn1 - bn2</li>
+  <li>(-bn1) + bn2 <=> bn2 - bn1</li>
+</ul>
+
+The base addition (with two positive BigNumbers) is done via a `zipWith (+)` with the lists of digits, after they are stuffed with enough zeros (if any) on the left to make sure the `zipWith` works properly.
+
+### subBN
+~~~~hs    
+subBN :: BigNumber -> BigNumber ->BigNumber -- Subtracts two BigNumbers using the rawSubBN function
+~~~~
+This funtion subtracts BigNumbers. It basically uses `processOperation` on the result given by `rawSubBN`. The function `rawSubBN` handles the signs of the operands by trying to simplify every sign combination to either a simple sum or subtraction, that is, an operation with two positive BigNumbers:
+
+<ul>
+  <li><strong>bn1 + bn2</strong> is the base sum and <strong>bn1 - bn2</strong> is the base subtraction</li>
+  <li>(-bn1) - (-bn2) <=> bn2 - bn1</li>
+  <li>bn1 - (-bn2) <=> bn1 + bn2</li>
+  <li>(-bn1) - bn2 <=> - (bn1 + bn2)</li>
+</ul>
+
+The base subtraction (with two positive BigNumbers) is done via a `zipWith (-)` with the lists of digits, after they are stuffed with enough zeros (if any) on the left to make sure the `zipWith` works properly. This functions also forces the greater operand to be the minuend (the first one) so that in the base subtraction we know that the result's sign will always be positive.
+
+### mulBN
+~~~~hs    
+mulBN :: BigNumber -> BigNumber -> BigNumber -- Multiplies two BigNumbers using the rawMulBN function
+~~~~
+
+This funtion multiplies BigNumbers. It basically uses processOperation on the result given by rawMulBN. The function `rawSubBN` handles the signs of the operands by trying to simplify every sign combination to a multiplication with two positive BigNumbers:
+
+<ul>
+  <li><strong>bn1 * bn2</strong> is the base multiplication</li>
+  <li>(-bn1) * (-bn2) <=> bn1 * bn2</li>
+  <li>bn1 * (-bn2) <=> - (bn1 * bn2)</li>
+  <li>(-bn1) * bn2 <=> - (bn1 * bn2)</li>
+</ul>
+
+The base multiplication (with two positive BigNumbers) is done by multiplying the first BigNumber by every digit of the second (with the help of the `mapBN` auxiliary function) and adding it to the result accumulator (having in mind the power of ten of each digit of the second argument). `processOperation` is needed for processing the result of the `mapBN`. To make it easier to multiply BigNumbers by 10 we used the auxialiary function `raiseTenBN`. rawMulBN also forces the greater operand to be the first argument (the "static" one) to improve performance.
+
+### divBN
+~~~~hs    
+divBN :: BigNumber -> BigNumber -> (BigNumber, BigNumber) -- Divides two BigNumbers using the rawDivBN function
+~~~~
+
+This function divides BigNumbers. It's basically a wrapper to the `rawDivBN` function that correctly initializes the remainder. It returns a tuple withe format **"(quotient, remaider)"**. The function `rawDivBN` handles the signs of the operands by trying to simplify every sign combination to a division of two positive BigNumbers:
+
+<ul>
+  <li><strong>bn1 / bn2</strong> is the base division with the base output: <strong>(quo, rem)</strong></li>
+  <li>(-bn1) / (-bn2) <=>  bn1 / bn2 => (quo, -rem)</li>
+  <li>bn1 / (-bn2) <=>  bn1 / bn2 => (-quo, rem)</li>
+  <li>(-bn1) / bn2 <=>  bn1 / bn2 => (-quo, -rem)</li>
+</ul>
+
+The base division (with two positive BigNumbers) is done by following the Euclidian Algorithm, with a headstart. The headstart is done with the help of the `getCloseBN`.
+The quotient is set to the headstart and the remainder is calculated according 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Test Cases
+> Fib.hs functions
+
+| **Function** | **Test Description** | **Input** | **Result** |
+| --------------------------|--------------------------------------------------------------------------------|  ----------------------------|----------------------------|
+| fibRec                    | ??             | 9              |34   |
+| fibRec                    | ??             | 20             |6765 |
+| fibrec                    | ??             | 0              |0    |
+| fibLista                  | ??             | 35             |9227465   | 
+| fibLista                  | ??             | 53             |53316291173  |
+| fibListaInfinita          | ??             | 120        |5358359254990966640871840|
+| fibListaInfinita          | ??             | 300        |222232244629420445529739893461909967206666939096499764990979600|
+| fibListaInfinita                    | ??    | 2000 |4224696333392304878706725602341482782579852840250681098010280137314308584370130707224123599639141511088446087538909603607640194711643596029271983312598737326253555802606991585915229492453904998722256795316982874482472992263901833716778060607011615497886719879858311468870876264597369086722884023654422295243347964480139515349562972087652656069529806499841977448720155612802665404554171717881930324025204312082516817125|
+| fibRecBN                   | ??     | 19 |4181 |
+| fibListaBN   | ?? | 46 | 1836311903 |
+| fibListaBN   | ?? | 70 | 190392490709135 |
+| fibListaBN   | ?? | 210 | 34507973060837282187130139035400899082304280 |
+| fibListaBN   | ?? | 2100 |3346258772894381788558434639941537877209053265053766990305264828948531270612382453397314273063065935765746863854356162204522216176489247137222743768063462632211603523255594286278039122388564394749151100734726712758604422072167490548845665501380314253429613265231899378789412217095899219158241009830329440878555524678295655938399582702177130182044596966419762299111936890305975459231961735528447500193845931171707920809046738569678456857200|
+| fibListaInfinitaBN | ?? | 500 | 139423224561697880139724382870407283950070256587697307264108962948325571622863290691557658876222521294125 |
+| fibListaInfinitaBN | ?? | 1300 | 21599680283161715807847052066540433422883515772119658063766498972503219104278316186542706552263614678844605521205471865945806520838603391933189946547621953603163789045147079719349493433360218263689302235202664706161893962580201172846238976101277970849319269574650368333475 |
+| fibListaInfinitaBN | ?? | 1300 | 
+
 
 ## Int vs BigNumber in Fibonacci Functions
 
+becomes extremely slow very quickly -- fibrec 
+
 93 causes program to overflow -- fibLista Int -> int
-## Test Cases
+
+between 500000 and 600000 ghci kills the process -- fibListaInfinita Integer
+
+becomes extremely slow at around n = 6000 -- fibListaBNBN 
+
+becomes extremely slow at around n = 7000 -- fibListaInfinitaBN
+
